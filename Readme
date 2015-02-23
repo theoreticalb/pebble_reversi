@@ -1,0 +1,17 @@
+Readme
+
+This is an implementation of Reversi for the Pebble watch.
+
+Todo:
+
+A/B pruning: It's implemented, but doesn't seem to work right and needs to be turned back on.
+AI improvements: Negatively count squares adjacent to corners?
+L4 AI featuring monte carlo simulations on high-performing leaf nodes?
+Transposition table?
+
+Cleanup: should separate out the settings and reversi logic from the main logic, physically if not logically.  Shouldn't be TOO hard, I don't think. It's cleaner than it looks. ;-)   
+
+Features:
+Pausing AI-Play on entering menu?
+Auto-skip for AI?
+First-player AI (so the human moves second)?
