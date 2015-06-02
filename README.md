@@ -20,3 +20,7 @@ It's a little messy.  But the contained assets, AI, and framework could be a sui
 ## Assets:
 
 Including the piece flipping animation frames and the app icon. (For the sake of completion: assets included are Creative Commons Attribution-ShareAlike 4.0 International)
+
+## Compiling:
+
+The appinfo.json has been gitignored, because it contains UUIDs that may make it possible for users to overwrite the Pebble Reversi available on the Pebble App Store.  In order to compile, create a new appinfo.json (for instance, by creating a new project using "pebble new-project new_project_name"), then copy the UUID into the appinfo.json.template of this project, rename appinfo.json.template to appinfo.json, and run "pebble build".  You may also want to swap out the names and company name.

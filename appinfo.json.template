@@ -1,0 +1,44 @@
+{
+  "uuid": "REPLACE_THIS_UUID",
+  "shortName": "CHOOSE_A_NAME",
+  "longName": "CHOOSE_A_NAME",
+  "companyName": "CHOOSE_A_COMPANY",
+  "versionCode": 1.0,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": [
+      {
+        "menuIcon": true,
+        "type": "png",
+        "name": "IMAGE_MENU_ICON",
+        "file": "pebble_tiny_icon.png"
+      },
+      {
+        "type": "png",
+        "name": "FLIP_1",
+        "file": "flip_1.png"
+      },
+      {
+        "type": "png",
+        "name": "FLIP_2",
+        "file": "flip_2.png"
+      },
+      {
+        "type": "png",
+        "name": "FLIP_3",
+        "file": "flip_3.png"
+      },
+      {
+        "type": "png",
+        "name": "FLIP_4",
+        "file": "flip_4.png"
+      }
+    ]
+  }
+}
