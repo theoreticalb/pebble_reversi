@@ -48,6 +48,7 @@
 	#define SETTINGS_AI_SUB_1 "Current: Easy"
 	#define SETTINGS_AI_SUB_2 "Current: Normal"
 	#define SETTINGS_AI_SUB_3 "Current: Hard"
+	#define SETTINGS_AI_SUB_4 "Current: Brutal"
 	#define SETTINGS_PLAYER_COUNT "Number of Players"
 	#define SETTINGS_PLAYER_COUNT_SUB_0 "Current: AI vs. AI"
 	#define SETTINGS_PLAYER_COUNT_SUB_1 "Current: 1 Player"

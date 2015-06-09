@@ -828,9 +828,13 @@ static void set_settings_menu_ai_item()
   {
     settings_menu_item_array[2] = (SimpleMenuItem){.callback = settings_ai_options, .icon=NULL,.subtitle=SETTINGS_AI_SUB_2, .title=SETTINGS_AI};
   }
-  else //ai_strength == 2
+  else if(ai_strength == 2)
   {
     settings_menu_item_array[2] = (SimpleMenuItem){.callback = settings_ai_options, .icon=NULL,.subtitle=SETTINGS_AI_SUB_3, .title=SETTINGS_AI};
+  }
+  else //ai_strength == 3
+  {
+    settings_menu_item_array[2] = (SimpleMenuItem){.callback = settings_ai_options, .icon=NULL,.subtitle=SETTINGS_AI_SUB_4, .title=SETTINGS_AI};
   }
 }
 static void set_settings_menu_pc_item()
