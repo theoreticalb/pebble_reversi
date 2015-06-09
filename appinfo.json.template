@@ -38,7 +38,17 @@
         "type": "png",
         "name": "FLIP_4",
         "file": "flip_4.png"
+      },
+      {
+        "type": "png",
+        "name": "FLIP_5",
+        "file": "flip_5.png"
       }
     ]
-  }
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3"
 }
