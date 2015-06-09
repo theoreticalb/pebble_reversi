@@ -1,6 +1,8 @@
 # pebble_reversi
 An implementation of the classic game Reversi for the Pebble smart watch featuring a simple minimax AI, written in C with the Pebble SDK.
 
+Updated for support for both the Pebble (Aplite) and Pebble Time (Basalt) platforms.
+
 ## Features:
 
 * The game Reversi, implemented for the controls and display of a Pebble watch, including simple frame animations for flipping the pieces.

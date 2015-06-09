@@ -22,6 +22,7 @@
 #define PLAYER_COUNT_KEY 1
 #define CURRENT_PLAYER_KEY 2
 #define AI_STRENGTH_KEY 4
+#define SHOW_GRID_KEY 5
 
 //Board constants
 #define BOARD_WIDTH 8
@@ -52,11 +53,15 @@
 	#define SETTINGS_PLAYER_COUNT_SUB_1 "Current: 1 Player"
 	#define SETTINGS_PLAYER_COUNT_SUB_2 "Current: 2 Players"
 	#define SETTINGS_TITLE "Tiny Reversi"
+	#define SETTINGS_GRID_DISPLAY "Toggle Board Grid"
+	#define SETTINGS_GRID_DISPLAY_SUB_TRUE "Current: Show Grid"
+	#define SETTINGS_GRID_DISPLAY_SUB_FALSE "Current: No Grid"
 
 	//AI Window
 	#define AI_SETTINGS_EASY "Easy AI"
 	#define AI_SETTINGS_NORMAL "Normal AI"
 	#define AI_SETTINGS_HARD "Hard AI"
+	#define AI_SETTINGS_BRUTAL "Brutal AI"
 	#define AI_SETTINGS_TITLE "AI Difficulty"
 
 

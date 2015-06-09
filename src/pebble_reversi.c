@@ -5,12 +5,19 @@
 #include "ai.h"
 #include "game.h"
 
+#ifdef PBL_SDK_3
+//Status bar support for SDK 3
+static StatusBarLayer *s_status_bar;
+static const int TOP_BAR_OFFSET = 16;
+#else
+static const int TOP_BAR_OFFSET = 0;
+#endif
 
 //Settings Windows
 static Window *settings_window;
 static SimpleMenuLayer* settings_menu_layer;
 static SimpleMenuSection settings_menu_section_array[1];
-static SimpleMenuItem settings_menu_item_array [4];
+static SimpleMenuItem settings_menu_item_array [5];
 
 //Debug Variables
 static const bool SPECIAL_SCREENSHOT_MODE = false;
@@ -19,7 +26,7 @@ static const bool SPECIAL_SCREENSHOT_MODE = false;
 static Window *ai_settings_window;
 static SimpleMenuLayer* ai_settings_menu_layer;
 static SimpleMenuSection ai_settings_menu_section_array[1];
-static SimpleMenuItem ai_settings_menu_item_array [3];
+static SimpleMenuItem ai_settings_menu_item_array [4];
 
 //Player Count Window
 static Window *pc_settings_window;
@@ -43,7 +50,7 @@ static int anim_center_x = 0;
 static int anim_center_y = 0;
 static bool anim_frames = false;
 static int anim_frame = 0;
-static GBitmap *flip[4];
+static GBitmap *flip_white[4];
 static int flip_frame_count = 4;
 static bool play_animations = true;
 
@@ -56,6 +63,7 @@ static char g_current_game_state = GAME_OVER;
 static int g_player_count = 1;
 static int g_current_player = 0; //Black is 0, White is 1.
 static int ai_strength = 1;
+static bool g_grid_display = false;
 
 //Stuff that'll get reconstructed once the game is restored.
 static int g_selected_square = 0; //An index into g_selectable_array
@@ -81,6 +89,7 @@ static void update_score_display();
 static void set_players_turn_display();
 static void set_ai_thinking_display();
 static void restore_game_state();
+static void set_settings_menu_grid_item();
 
 
 static int get_current_selectable_index()
@@ -195,7 +204,7 @@ static int get_play_frame_from_anim_frame(int cur_frame){
 
 static void write_board_to_layer(Layer *this_layer, GContext *ctx)
 {
-  const int TOP_OFFSET = 22;
+  const int TOP_OFFSET = 22 + TOP_BAR_OFFSET;
   const int LEFT_OFFSET = 8;
   const int CIRCLE_SIZE = 16;
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -211,7 +220,26 @@ static void write_board_to_layer(Layer *this_layer, GContext *ctx)
   {
     active_board = g_board;
   }
-  
+  //draw grid
+  if(g_grid_display)
+  {
+    //Render the board first, behind the play area
+    int board_total_width = BOARD_WIDTH * CIRCLE_SIZE;
+    for(int i = 0; i <= BOARD_WIDTH; i++)
+    {
+      int cur_x = (i * CIRCLE_SIZE) + LEFT_OFFSET;
+      GPoint origin = GPoint(cur_x, TOP_OFFSET);
+      GPoint dest = GPoint(cur_x, TOP_OFFSET+board_total_width);
+      graphics_draw_line(ctx, origin, dest);
+    }
+    for(int i = 0; i <= BOARD_WIDTH; i++)
+    {
+      int cur_y = (i * CIRCLE_SIZE) + TOP_OFFSET;
+      GPoint origin = GPoint(LEFT_OFFSET, cur_y);
+      GPoint dest = GPoint(LEFT_OFFSET+board_total_width, cur_y);
+      graphics_draw_line(ctx, origin, dest);
+    }
+  }
   for(int i = 0; i < BOARD_WIDTH; i++)
   {
     for(int j = 0; j < BOARD_HEIGHT; j++)
@@ -220,8 +248,13 @@ static void write_board_to_layer(Layer *this_layer, GContext *ctx)
       if(get_board_value(index, active_board) == WHITE)
       {
         //graphics_draw_circle(ctx, GPoint((i*CIRCLE_SIZE)+CIRCLE_SIZE/2 + LEFT_OFFSET -1, (j*CIRCLE_SIZE)+CIRCLE_SIZE/2 + TOP_OFFSET -1), CIRCLE_SIZE/2);
-        graphics_draw_round_rect(ctx, GRect(i*CIRCLE_SIZE + LEFT_OFFSET, j*CIRCLE_SIZE + TOP_OFFSET, CIRCLE_SIZE, CIRCLE_SIZE), 8);
-
+        #ifdef PBL_COLOR
+          graphics_context_set_fill_color(ctx, GColorWhite);
+          graphics_fill_rect(ctx, GRect(i*CIRCLE_SIZE + LEFT_OFFSET, j*CIRCLE_SIZE + TOP_OFFSET, CIRCLE_SIZE, CIRCLE_SIZE), 8, GCornersAll);
+          graphics_context_set_fill_color(ctx, GColorBlack);
+        #else
+          graphics_draw_round_rect(ctx, GRect(i*CIRCLE_SIZE + LEFT_OFFSET, j*CIRCLE_SIZE + TOP_OFFSET, CIRCLE_SIZE, CIRCLE_SIZE), 8);
+        #endif
       }
       else if(get_board_value(index, active_board) == BLACK)
       {
@@ -229,7 +262,13 @@ static void write_board_to_layer(Layer *this_layer, GContext *ctx)
       }
       else if(get_board_value(index, active_board) == ANIMATING && animating)
       {
-        graphics_draw_bitmap_in_rect(ctx, flip[get_play_frame_from_anim_frame(anim_frame)], (GRect) { .origin = { i*CIRCLE_SIZE + LEFT_OFFSET, j*CIRCLE_SIZE + TOP_OFFSET }, .size = {17,17} });
+        #ifdef PBL_COLOR
+        graphics_context_set_compositing_mode(ctx, GCompOpSet);
+        #else
+        graphics_context_set_compositing_mode(ctx, GCompOpAnd);
+        #endif
+        graphics_draw_bitmap_in_rect(ctx, flip_white[get_play_frame_from_anim_frame(anim_frame)], (GRect) { .origin = { i*CIRCLE_SIZE + LEFT_OFFSET, j*CIRCLE_SIZE + TOP_OFFSET }, .size = {17,17} });
+        graphics_context_set_compositing_mode(ctx, GCompOpAnd);
       }
       else if(get_board_value(index, active_board) == SELECTABLE && !animating)//Don't render selectables while animating.
       {
@@ -263,6 +302,7 @@ static void write_board_to_layer(Layer *this_layer, GContext *ctx)
 
         if(index == 0 || index == top_right || index == bottom_left || index == bottom_right)
         {
+          //Draw the corner indicators
           graphics_fill_rect(ctx, GRect(i*CIRCLE_SIZE+7 + LEFT_OFFSET, j*CIRCLE_SIZE+7 + TOP_OFFSET, 2, 2), 0, GCornerNone);
         }
       }
@@ -585,6 +625,9 @@ static int get_depth_by_ai_strength(int strength)
     case 2 :
       return 3;
       break;
+    case 3:
+      return 4;
+      break;
     default:
       return 2;
   }
@@ -688,28 +731,32 @@ static void click_config_provider(void *context) {
 
 static void init_anim_frames()
 {
-  flip[0] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_1);
-  flip[1] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_2);
-  flip[2] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_3);
-  flip[3] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_4);
+  flip_white[0] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_1);
+  flip_white[1] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_2);
+  flip_white[2] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_3);
+  flip_white[3] = gbitmap_create_with_resource(RESOURCE_ID_FLIP_4);
 }
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
+  const int TOP_OFFSET = TOP_BAR_OFFSET;
   init_anim_frames();
   //Create Life Layer
   s_canvas_layer = layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
   layer_add_child(window_layer, s_canvas_layer);
 
   // Create Text Layer
-  text_layer = text_layer_create((GRect) { .origin = { bounds.size.w/6, 0 }, .size = { (bounds.size.w * 2)/3, 20 } });
+  text_layer = text_layer_create((GRect) { .origin = { bounds.size.w/6, TOP_OFFSET }, .size = { (bounds.size.w * 2)/3, 20 } });
+  text_layer_set_text_color(text_layer, GColorBlack);
+  text_layer_set_background_color(text_layer, GColorClear);
+  text_layer_set_text(text_layer, "Tiny Reversi");
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(text_layer));
 
   // Create Black Score Layer
-  black_score_layer = text_layer_create((GRect) { .origin = { 0, 0 }, .size = { bounds.size.w/6, 20 } });
+  black_score_layer = text_layer_create((GRect) { .origin = { 0, TOP_OFFSET }, .size = { bounds.size.w/6, 20 } });
   text_layer_set_text_color(black_score_layer, GColorWhite);
   text_layer_set_background_color(black_score_layer, GColorBlack);
   text_layer_set_text(black_score_layer, "00");
@@ -717,7 +764,7 @@ static void window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(black_score_layer));
 
   // Create White Score Layer
-  white_score_layer = text_layer_create((GRect) { .origin = { (bounds.size.w * 5)/6, 0 }, .size = { bounds.size.w/6, 20 } });
+  white_score_layer = text_layer_create((GRect) { .origin = { (bounds.size.w * 5)/6, TOP_OFFSET }, .size = { bounds.size.w/6, 20 } });
   text_layer_set_text_color(white_score_layer, GColorBlack);
   text_layer_set_background_color(white_score_layer, GColorWhite);
   text_layer_set_text(white_score_layer, "00");
@@ -730,6 +777,12 @@ static void window_load(Window *window) {
 
   // Set the update_proc
   layer_set_update_proc(s_canvas_layer, write_board_to_layer);
+
+#ifdef PBL_SDK_3
+  // Set up the status bar last to ensure it is on top of other Layers
+  s_status_bar = status_bar_layer_create();
+  layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
+#endif
 }
 
 static void window_unload(Window *window) {
@@ -795,6 +848,25 @@ static void set_settings_menu_pc_item()
     settings_menu_item_array[3] = (SimpleMenuItem){.callback = settings_player_count, .icon=NULL,.subtitle=SETTINGS_PLAYER_COUNT_SUB_2,.title=SETTINGS_PLAYER_COUNT};
   }
 }
+static void settings_toggle_grid()
+{
+  g_grid_display = !(g_grid_display);
+  set_settings_menu_grid_item();
+  //Return to game.
+  const bool animated = true;
+  window_stack_push(window, animated);
+}
+static void set_settings_menu_grid_item()
+{
+  if(g_grid_display == true)
+  {
+    settings_menu_item_array[4] = (SimpleMenuItem){.callback = settings_toggle_grid, .icon=NULL,.subtitle=SETTINGS_GRID_DISPLAY_SUB_TRUE,.title=SETTINGS_GRID_DISPLAY};
+  }
+  else
+  {
+    settings_menu_item_array[4] = (SimpleMenuItem){.callback = settings_toggle_grid, .icon=NULL,.subtitle=SETTINGS_GRID_DISPLAY_SUB_FALSE,.title=SETTINGS_GRID_DISPLAY};  
+  }
+}
 
 static void settings_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -803,7 +875,8 @@ static void settings_window_load(Window *window) {
   settings_menu_item_array[1] = (SimpleMenuItem){.callback = settings_new_game, .icon=NULL,.subtitle=NULL,.title=SETTINGS_NEW_GAME};
   set_settings_menu_ai_item();
   set_settings_menu_pc_item();
-  settings_menu_section_array[0] = (SimpleMenuSection){.items=settings_menu_item_array,.num_items=4,.title=SETTINGS_TITLE};
+  set_settings_menu_grid_item();
+  settings_menu_section_array[0] = (SimpleMenuSection){.items=settings_menu_item_array,.num_items=5,.title=SETTINGS_TITLE};
   settings_menu_layer = simple_menu_layer_create((GRect) { .origin = { 0, 0 }, .size = { bounds.size.w, bounds.size.h } },
     window,
     settings_menu_section_array,
@@ -842,6 +915,11 @@ static void ai_settings_hard_button()
   ai_settings_set(2);
 }
 
+static void ai_settings_brutal_button()
+{
+  ai_settings_set(3);
+}
+
 static void ai_settings_click_config_provider(void *context) {
 
 }
@@ -852,7 +930,12 @@ static void ai_settings_window_load(Window *window) {
   ai_settings_menu_item_array[0] = (SimpleMenuItem){.callback = ai_settings_easy_button, .icon=NULL,.subtitle=NULL,.title = AI_SETTINGS_EASY};
   ai_settings_menu_item_array[1] = (SimpleMenuItem){.callback = ai_settings_normal_button, .icon=NULL,.subtitle=NULL,.title=AI_SETTINGS_NORMAL};
   ai_settings_menu_item_array[2] = (SimpleMenuItem){.callback = ai_settings_hard_button, .icon=NULL,.subtitle=NULL, .title=AI_SETTINGS_HARD};
+  ai_settings_menu_item_array[3] = (SimpleMenuItem){.callback = ai_settings_brutal_button, .icon=NULL,.subtitle=NULL, .title=AI_SETTINGS_BRUTAL};
+  #ifdef PBL_PLATFORM_BASALT
+  ai_settings_menu_section_array[0] = (SimpleMenuSection){.items=ai_settings_menu_item_array,.num_items=4,.title=AI_SETTINGS_TITLE};
+  #else
   ai_settings_menu_section_array[0] = (SimpleMenuSection){.items=ai_settings_menu_item_array,.num_items=3,.title=AI_SETTINGS_TITLE};
+  #endif
   ai_settings_menu_layer = simple_menu_layer_create((GRect) { .origin = { 0, 0 }, .size = { bounds.size.w, bounds.size.h } },
     window,
     ai_settings_menu_section_array,
@@ -941,6 +1024,7 @@ static void serialize_game_state()
   persist_write_int(PLAYER_COUNT_KEY, g_player_count);
   persist_write_int(CURRENT_PLAYER_KEY, g_current_player);
   persist_write_int(AI_STRENGTH_KEY, ai_strength);
+  persist_write_bool(SHOW_GRID_KEY, g_grid_display);
 }
 
 static bool validate_deserialization()
@@ -969,7 +1053,7 @@ static bool validate_deserialization()
   {
     return false;
   }
-  if(ai_strength < 0 || ai_strength > 2)
+  if(ai_strength < 0 || ai_strength > 3)
   {
     return false;
   }
@@ -1029,6 +1113,14 @@ static void deserialize_game_state()
     g_player_count = persist_read_int(PLAYER_COUNT_KEY);
     g_current_player = persist_read_int(CURRENT_PLAYER_KEY);
     ai_strength = persist_read_int(AI_STRENGTH_KEY);
+    if(persist_exists(SHOW_GRID_KEY))
+    {
+      g_grid_display = persist_read_bool(SHOW_GRID_KEY);
+    }
+    else
+    {
+      g_grid_display = false; //default
+    }
     if(!validate_deserialization())
     {
       reset_game();
@@ -1072,6 +1164,9 @@ static void init(void) {
 
   //game window
   window = window_create();
+  #ifdef PBL_COLOR
+    window_set_background_color(window, (GColor8){ .argb = 0b11001100 });
+  #endif
   window_set_click_config_provider(window, click_config_provider);
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
